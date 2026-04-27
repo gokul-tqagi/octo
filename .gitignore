@@ -166,3 +166,10 @@ wandb
 .vscode
 .idea
 datasets/debug_dataset/bridge_dataset/1.0.0/action_*
+
+# Generated outputs — not committed
+checkpoints/
+data/
+results/
+eval_output/
+validation_output/
