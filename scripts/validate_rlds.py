@@ -38,12 +38,11 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-# TF and Open3D are optional — graceful fallback
 try:
-    import tensorflow_datasets as tfds
-    HAS_TFDS = True
+    import tensorflow as tf
+    HAS_TF = True
 except ImportError:
-    HAS_TFDS = False
+    HAS_TF = False
 
 try:
     import open3d as o3d
@@ -61,24 +60,81 @@ except ImportError:
 
 # ── RLDS loading ──────────────────────────────────────────────────────────────
 
+def _parse_step(step_bytes):
+    """Parse a serialized step Example back into arrays."""
+    step_ex = tf.train.Example()
+    step_ex.ParseFromString(step_bytes)
+    sf = step_ex.features.feature
+
+    result = {}
+
+    # Action
+    if "action" in sf:
+        result["action"] = np.array(sf["action"].float_list.value, dtype=np.float32)
+
+    # State
+    if "observation/state" in sf:
+        result["state"] = np.array(
+            sf["observation/state"].float_list.value, dtype=np.float32
+        )
+
+    # Front image (JPEG bytes -> numpy)
+    if "observation/image_0" in sf:
+        jpg_bytes = sf["observation/image_0"].bytes_list.value[0]
+        img_arr = np.frombuffer(jpg_bytes, dtype=np.uint8)
+        result["front_image"] = cv2.cvtColor(
+            cv2.imdecode(img_arr, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB
+        )
+
+    # Wrist image
+    if "observation/image_1" in sf:
+        jpg_bytes = sf["observation/image_1"].bytes_list.value[0]
+        img_arr = np.frombuffer(jpg_bytes, dtype=np.uint8)
+        result["wrist_image"] = cv2.cvtColor(
+            cv2.imdecode(img_arr, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB
+        )
+
+    # Language
+    if "language_instruction" in sf:
+        result["language"] = sf["language_instruction"].bytes_list.value[0].decode("utf-8")
+
+    return result
+
+
 def load_rlds_episodes(data_dir, dataset_name, max_episodes=None):
-    """Load episodes from RLDS TFRecord dataset via tensorflow_datasets."""
-    if not HAS_TFDS:
-        raise ImportError("tensorflow_datasets required. Run inside Docker container.")
+    """Load episodes from RLDS TFRecord by parsing our custom serialization format."""
+    if not HAS_TF:
+        raise ImportError("tensorflow required. Run inside Docker container.")
 
     ds_path = os.path.join(data_dir, dataset_name, "1.0.0")
     if not os.path.exists(ds_path):
         raise FileNotFoundError(f"Dataset not found at {ds_path}")
 
-    builder = tfds.builder_from_directory(ds_path)
-    ds = builder.as_dataset(split="train")
+    # Find train tfrecord files
+    import glob
+    tfrecord_files = sorted(glob.glob(os.path.join(ds_path, "*-train.tfrecord*")))
+    if not tfrecord_files:
+        raise FileNotFoundError(f"No train tfrecord files in {ds_path}")
+
+    dataset = tf.data.TFRecordDataset(tfrecord_files)
 
     episodes = []
-    for i, episode in enumerate(ds):
+    for i, raw_record in enumerate(dataset):
         if max_episodes is not None and i >= max_episodes:
             break
 
-        steps = list(episode["steps"])
+        # Parse trajectory-level example
+        traj_ex = tf.train.Example()
+        traj_ex.ParseFromString(raw_record.numpy())
+        features = traj_ex.features.feature
+
+        # "steps" contains serialized step Examples as bytes
+        if "steps" not in features:
+            print(f"  Episode {i}: no 'steps' key, skipping")
+            continue
+
+        steps_bytes = features["steps"].bytes_list.value
+
         ep_data = {
             "front_images": [],
             "wrist_images": [],
@@ -87,31 +143,24 @@ def load_rlds_episodes(data_dir, dataset_name, max_episodes=None):
             "language": "",
         }
 
-        for step in steps:
-            # Decode images (TFDS handles JPEG decoding)
-            if "image_0" in step["observation"]:
-                front = step["observation"]["image_0"].numpy()
-                ep_data["front_images"].append(front)
-            if "image_1" in step["observation"]:
-                wrist = step["observation"]["image_1"].numpy()
-                ep_data["wrist_images"].append(wrist)
+        for step_bytes in steps_bytes:
+            step = _parse_step(step_bytes)
+            if "action" in step:
+                ep_data["actions"].append(step["action"])
+            if "state" in step:
+                ep_data["states"].append(step["state"])
+            if "front_image" in step:
+                ep_data["front_images"].append(step["front_image"])
+            if "wrist_image" in step:
+                ep_data["wrist_images"].append(step["wrist_image"])
+            if "language" in step and step["language"]:
+                ep_data["language"] = step["language"]
 
-            # State and action
-            if "state" in step["observation"]:
-                ep_data["states"].append(step["observation"]["state"].numpy())
-            ep_data["actions"].append(step["action"].numpy())
+        ep_data["states"] = np.array(ep_data["states"]) if ep_data["states"] else np.array([])
+        ep_data["actions"] = np.array(ep_data["actions"]) if ep_data["actions"] else np.array([])
 
-            # Language (same for all steps)
-            if "language_instruction" in step:
-                lang = step["language_instruction"].numpy()
-                if isinstance(lang, bytes):
-                    lang = lang.decode("utf-8")
-                ep_data["language"] = lang
-
-        ep_data["states"] = np.array(ep_data["states"])
-        ep_data["actions"] = np.array(ep_data["actions"])
         episodes.append(ep_data)
-        print(f"  Episode {i}: {len(steps)} steps, "
+        print(f"  Episode {i}: {len(steps_bytes)} steps, "
               f"states {ep_data['states'].shape}, "
               f"actions {ep_data['actions'].shape}, "
               f"lang=\"{ep_data['language'][:50]}\"")

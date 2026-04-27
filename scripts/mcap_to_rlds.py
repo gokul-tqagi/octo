@@ -129,13 +129,21 @@ def _binarize_gripper(val, threshold=0.5):
     return np.float32(1.0 if normalized > threshold else 0.0)
 
 
+def _msg_time_to_sec(log_time):
+    """Convert mcap log_time to seconds. Handles both int (nanoseconds) and datetime."""
+    if isinstance(log_time, (int, float)):
+        return log_time / 1e9
+    # datetime.datetime (newer mcap_ros2 versions)
+    return log_time.timestamp()
+
+
 def _collect_messages_by_topic(mcap_path, topics):
     """Read all messages from given topics using mcap_ros2, return {topic: [(time_sec, msg)]}."""
     result = {t: [] for t in topics}
     for msg in read_ros2_messages(mcap_path):
         topic = msg.channel.topic
         if topic in result:
-            t_sec = msg.log_time / 1e9
+            t_sec = _msg_time_to_sec(msg.log_time)
             result[topic].append((t_sec, msg.ros_msg))
     return result
 
