@@ -112,15 +112,16 @@ def rollout_episode(model, episode, stats_path):
         proprio = (episode["state"][t] - proprio_mean) / (proprio_std + 1e-8)
 
         # Build observation dict for single timestep
+        # All entries including pad_mask_dict must have shape (B, W, ...)
         observation = {
             "image_primary": episode["front"][t][None, None],  # (1, 1, H, W, 3)
             "image_wrist": episode["wrist"][t][None, None],    # (1, 1, H, W, 3)
             "proprio": proprio[None, None],                     # (1, 1, 7)
             "timestep_pad_mask": np.array([[True]]),             # (1, 1)
             "pad_mask_dict": {
-                "image_primary": np.array([True]),
-                "image_wrist": np.array([True]),
-                "proprio": np.array([True]),
+                "image_primary": np.array([[True]]),             # (1, 1)
+                "image_wrist": np.array([[True]]),               # (1, 1)
+                "proprio": np.array([[True]]),                   # (1, 1)
             },
         }
 
