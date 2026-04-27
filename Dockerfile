@@ -22,12 +22,13 @@ RUN pip3 install --no-cache-dir "jaxlib==0.4.20+cuda12.cudnn89" \
 # Pin transformers to version with Flax support (5.x dropped FlaxAutoModel)
 RUN pip3 install --no-cache-dir "transformers==4.36.2"
 
-# Data extraction deps: mcap-ros2-support for bag parsing, opencv for image processing
+# Data extraction + validation deps
 RUN pip3 install --no-cache-dir \
     mcap mcap-ros2-support \
     opencv-python-headless \
     scipy==1.11.4 \
-    open3d
+    open3d \
+    plotly
 
 # Install octo package
 COPY . .

@@ -26,13 +26,16 @@ PRETRAINED_MODEL="hf://rail-berkeley/octo-small-1.5"
 FINETUNE_MODE="full,language_conditioned"
 # ──────────────────────────────────────────────────────────────────────────────
 
+VALIDATION_DIR="${OCTO_DIR}/validation_output"
+
 usage() {
-    echo "Usage: $0 [build|extract|finetune|all]"
+    echo "Usage: $0 [build|extract|validate|finetune|all]"
     echo ""
     echo "  build    - Build the Docker image"
     echo "  extract  - Extract mcap bags to RLDS TFRecord"
+    echo "  validate - Visual validation of extracted RLDS dataset"
     echo "  finetune - Run Octo finetuning on extracted data"
-    echo "  all      - Run build + extract + finetune"
+    echo "  all      - Run build + extract + validate + finetune"
     exit 1
 }
 
@@ -97,13 +100,39 @@ finetune() {
     echo "  Checkpoints at: ${CHECKPOINT_DIR}"
 }
 
+validate() {
+    echo "=== Validating extracted RLDS dataset ==="
+    echo "  RLDS data:    ${RLDS_OUTPUT_DIR}"
+    echo "  Output dir:   ${VALIDATION_DIR}"
+
+    mkdir -p "${VALIDATION_DIR}"
+
+    docker run --rm \
+        --name "${CONTAINER_NAME}-validate" \
+        -v "${RLDS_OUTPUT_DIR}:/data/rlds:ro" \
+        -v "${VALIDATION_DIR}:/data/validation_output" \
+        -v "${OCTO_DIR}:/octo" \
+        -e PYTHONUNBUFFERED=1 \
+        "${IMAGE_NAME}" \
+        python3 /octo/scripts/validate_rlds.py \
+            --data_dir /data/rlds \
+            --dataset_name "${DATASET_NAME}" \
+            --output_dir /data/validation_output \
+            --max_episodes 10
+
+    echo "=== Validation complete ==="
+    echo "  Report:         ${VALIDATION_DIR}/validation_report.html"
+    echo "  Contact sheets: ${VALIDATION_DIR}/contact_sheets/"
+}
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 COMMAND="${1:-}"
 
 case "${COMMAND}" in
     build)    build ;;
     extract)  extract ;;
+    validate) validate ;;
     finetune) finetune ;;
-    all)      build && extract && finetune ;;
+    all)      build && extract && validate && finetune ;;
     *)        usage ;;
 esac
