@@ -235,9 +235,16 @@ def make_batch_generator(episodes, stats, batch_size, action_horizon, window_siz
                     act_pad.append(False)
 
             batch_actions.append(np.stack(act_chunk))
-            batch_action_pad_mask.append(np.array(act_pad))
+            # action_pad_mask is (H, A) — same shape as action chunk, per-dim mask
+            act_pad_2d = np.stack([
+                np.ones(7, dtype=bool) if p else np.zeros(7, dtype=bool)
+                for p in act_pad
+            ])
+            batch_action_pad_mask.append(act_pad_2d)
             batch_language.append(ep["language"].encode("utf-8"))
 
+        # pad_mask_dict values must be (B, window_size) to match observation shapes
+        W = window_size
         yield {
             "observation": {
                 "image_primary": np.stack(batch_obs_primary),    # (B, W, 256, 256, 3)
@@ -245,9 +252,9 @@ def make_batch_generator(episodes, stats, batch_size, action_horizon, window_siz
                 "proprio": np.stack(batch_obs_proprio),          # (B, W, 7)
                 "timestep_pad_mask": np.stack(batch_obs_pad_mask),  # (B, W)
                 "pad_mask_dict": {
-                    "image_primary": np.ones(batch_size, dtype=bool),
-                    "image_wrist": np.ones(batch_size, dtype=bool),
-                    "proprio": np.ones(batch_size, dtype=bool),
+                    "image_primary": np.ones((batch_size, W), dtype=bool),
+                    "image_wrist": np.ones((batch_size, W), dtype=bool),
+                    "proprio": np.ones((batch_size, W), dtype=bool),
                 },
             },
             "task": {
@@ -256,8 +263,8 @@ def make_batch_generator(episodes, stats, batch_size, action_horizon, window_siz
                     "language_instruction": np.ones(batch_size, dtype=bool),
                 },
             },
-            "action": np.stack(batch_actions)[:, None, :, :],    # (B, 1, H, 7)
-            "action_pad_mask": np.stack(batch_action_pad_mask)[:, None, :],  # (B, 1, H)
+            "action": np.stack(batch_actions)[:, None, :, :],    # (B, W, H, 7)
+            "action_pad_mask": np.stack(batch_action_pad_mask)[:, None, :, :],  # (B, W, H, A)
             "dataset_name": ["xarm_place_toolbox"] * batch_size,
         }
 
