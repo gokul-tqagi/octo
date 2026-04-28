@@ -16,6 +16,13 @@ right_arm_indices: [7, 8, 9, 10, 11, 12, 13]
 base_vel_indices: [14, 15]
 include_base_vel: false
 
+# FK conversion: joint positions -> delta EEF actions (7-dim, matches Octo pretrained format)
+action_mode: delta_eef
+# Right arm joint indices within the arm's 7-dim subset [j0-j5, gripper]
+fk_joint_indices: [0, 1, 2, 3, 4, 5]
+gripper_index: 6
+fk_include_mount: false
+
 # Cameras: overhead + right wrist (skip left wrist since left arm is idle)
 primary_camera: cam_high
 wrist_camera: cam_right_wrist

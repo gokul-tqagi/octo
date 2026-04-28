@@ -95,6 +95,16 @@ class LeRobotConfig:
     target_hz: float = 5.0
     original_fps: int = 30
 
+    # FK conversion: convert joint positions to delta EEF actions
+    # "joint" = keep raw joint positions, "delta_eef" = FK + delta computation
+    action_mode: str = "delta_eef"
+    # Joint indices for FK (6 revolute joints, excluding gripper)
+    fk_joint_indices: List[int] = field(default_factory=lambda: list(range(0, 6)))
+    # Gripper index (appended as 7th dim after FK conversion)
+    gripper_index: int = 6
+    # Include mobile base mount offset in FK
+    fk_include_mount: bool = False
+
     # Train/val split
     val_ratio: float = 0.1
 
@@ -281,11 +291,51 @@ class LeRobotReader:
                 if cfg.wrist_camera:
                     wrist_images.append(np.zeros((cfg.wrist_size[1], cfg.wrist_size[0], 3), dtype=np.uint8))
 
+        raw_actions = np.stack(actions)
+        raw_states = np.stack(states)
+
+        # Apply FK conversion if configured
+        if cfg.action_mode == "delta_eef":
+            from wxai_fk import batch_fk_euler, compute_delta_eef
+
+            # FK on the 6 revolute joints to get EEF poses
+            fk_indices = cfg.fk_joint_indices
+            joint_angles = raw_actions[:, fk_indices]
+            eef_poses = batch_fk_euler(joint_angles, include_mount=cfg.fk_include_mount)
+
+            # Compute delta EEF actions from consecutive poses
+            delta_eef = compute_delta_eef(eef_poses)  # (T-1, 6)
+
+            # Append gripper as 7th dim (binarized: >0.01 = closed)
+            grip_idx = cfg.gripper_index
+            gripper_vals = raw_actions[1:, grip_idx]  # align with delta (T-1)
+            gripper_binary = (gripper_vals > 0.01).astype(np.float32)
+
+            final_actions = np.concatenate(
+                [delta_eef, gripper_binary[:, None]], axis=-1
+            ).astype(np.float32)  # (T-1, 7)
+
+            # EEF state: [x, y, z, roll, pitch, yaw, gripper]
+            all_gripper = (raw_actions[:, grip_idx] > 0.01).astype(np.float32)
+            final_states = np.concatenate(
+                [eef_poses, all_gripper[:, None]], axis=-1
+            ).astype(np.float32)  # (T, 7)
+
+            # Trim images to match T-1 actions (drop last frame)
+            primary_images = primary_images[:-1]
+            if wrist_images:
+                wrist_images = wrist_images[:-1]
+            final_states = final_states[:-1]  # (T-1, 7)
+        else:
+            # Raw joint positions
+            final_actions = raw_actions
+            final_states = raw_states
+
         return {
             "primary_images": primary_images,
             "wrist_images": wrist_images,
-            "actions": np.stack(actions),
-            "states": np.stack(states),
+            "actions": final_actions,
+            "states": final_states,
             "language": task_text,
         }
 
