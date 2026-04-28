@@ -1,0 +1,29 @@
+# lerobot_aloha.yaml: Config for converting ALOHA mobileai "pack red bag" data to RLDS.
+
+record_dirs:
+  - /data/aloha/mobileai-avatar_test_record2
+  - /data/aloha/mobileai-avatar_test_record4_recovered
+
+output_dir: /data/rlds_output
+dataset_name: aloha_pack_red_bag
+language_instruction: "pack red bag"
+
+# Right arm is the active task arm (left arm is idle).
+# Right arm indices: joints 7-13 in the 16-dim action vector.
+active_arm: right
+left_arm_indices: [0, 1, 2, 3, 4, 5, 6]
+right_arm_indices: [7, 8, 9, 10, 11, 12, 13]
+base_vel_indices: [14, 15]
+include_base_vel: false
+
+# Cameras: overhead + right wrist (skip left wrist since left arm is idle)
+primary_camera: cam_high
+wrist_camera: cam_right_wrist
+primary_size: [256, 256]
+wrist_size: [128, 128]
+
+# 30 FPS -> 5 Hz (stride=6, ~100 steps/episode)
+target_hz: 5.0
+original_fps: 30
+
+val_ratio: 0.1
