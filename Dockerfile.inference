@@ -1,0 +1,29 @@
+# Dockerfile.inference: Minimal container for Octo zero-shot inference with JAX + CUDA.
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y python3 python3-pip git && rm -rf /var/lib/apt/lists/*
+
+# Ensure cuPTI is on the library path (JAX needs it for CUDA backend init)
+ENV LD_LIBRARY_PATH="/usr/local/cuda/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
+
+WORKDIR /octo
+
+# Install octo dependencies first (installs jax 0.4.20 CPU)
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Override with CUDA-enabled jaxlib matching jax 0.4.20
+RUN pip3 install --no-cache-dir "jaxlib==0.4.20+cuda12.cudnn89" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+# Pin transformers to version with Flax support (5.x dropped FlaxAutoModel)
+RUN pip3 install --no-cache-dir "transformers==4.36.2"
+
+# Install mcap and visualization deps
+RUN pip3 install --no-cache-dir mcap mcap-ros2-support opencv-python-headless scipy==1.11.4 matplotlib
+
+# Install octo package
+COPY . .
+RUN pip3 install --no-cache-dir -e .
+
+CMD ["bash"]
