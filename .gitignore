@@ -162,6 +162,7 @@ cython_debug/
 .ipynb_checkpoints/
 wandb
 *.png
+!docs/training_results/*.png
 *.sif
 .vscode
 .idea
