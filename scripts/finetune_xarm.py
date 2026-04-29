@@ -39,6 +39,7 @@ from octo.utils.train_utils import (
 )
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string("config", None, "Path to YAML config file (CLI flags override).")
 flags.DEFINE_string("pretrained_path", None, "Path to pre-trained Octo checkpoint.")
 flags.DEFINE_string("data_dir", None, "Path to RLDS dataset directory.")
 flags.DEFINE_string("save_dir", None, "Directory for saving checkpoints.")
@@ -272,8 +273,17 @@ def make_batch_generator(episodes, stats, batch_size, action_horizon, window_siz
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main(_):
-    assert FLAGS.pretrained_path, "Must provide --pretrained_path"
-    assert FLAGS.data_dir, "Must provide --data_dir"
+    # Load YAML config if provided, then let CLI flags override
+    if FLAGS.config:
+        import yaml
+        with open(FLAGS.config) as f:
+            cfg = yaml.safe_load(f)
+        for key, val in cfg.items():
+            if hasattr(FLAGS, key) and FLAGS[key].value == FLAGS[key].default:
+                FLAGS[key].value = val
+
+    assert FLAGS.pretrained_path, "Must provide --pretrained_path or --config with pretrained_path"
+    assert FLAGS.data_dir, "Must provide --data_dir or --config with data_dir"
 
     initialize_compilation_cache()
     tf.config.set_visible_devices([], "GPU")
