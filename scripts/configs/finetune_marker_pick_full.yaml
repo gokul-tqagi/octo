@@ -1,0 +1,27 @@
+# finetune_marker_pick_full.yaml: Full finetune (backbone unfrozen) from 40k head_only checkpoint.
+# Lower lr to avoid catastrophic forgetting of pretrained features.
+
+# Model — resume from our best head_only checkpoint
+pretrained_path: "/data/checkpoints/marker_pick_head_only_40k"
+
+# Data
+data_dir: "/data/rlds_output"
+dataset_name: "aloha_marker_pick"
+
+# Checkpoints
+save_dir: "/data/checkpoints/marker_pick_full"
+
+# Training — lower lr for full finetune, 20k steps
+batch_size: 32
+num_steps: 20000
+learning_rate: 3.0e-5
+action_horizon: 4
+window_size: 1
+
+# Backbone unfrozen
+freeze_transformer: false
+
+# Logging
+log_interval: 100
+save_interval: 2000
+wandb: false
