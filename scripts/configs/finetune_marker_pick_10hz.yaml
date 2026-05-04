@@ -1,0 +1,21 @@
+# finetune_marker_pick_10hz.yaml: Head_only Octo-Small on 10Hz marker pick data.
+# ~2x more training frames than 5Hz, smaller step sizes.
+
+pretrained_path: "hf://rail-berkeley/octo-small-1.5"
+
+data_dir: "/data/rlds_output"
+dataset_name: "aloha_marker_pick_10hz"
+
+save_dir: "/data/checkpoints/marker_pick_10hz"
+
+batch_size: 32
+num_steps: 20000
+learning_rate: 1.0e-4
+action_horizon: 4
+window_size: 1
+
+freeze_transformer: true
+
+log_interval: 100
+save_interval: 2000
+wandb: false

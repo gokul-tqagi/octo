@@ -1,0 +1,21 @@
+# finetune_lipbalm_10hz.yaml: Head_only Octo-Small on 10Hz lipbalm pick data.
+# ~2x more training frames than 5Hz, smaller step sizes.
+
+pretrained_path: "hf://rail-berkeley/octo-small-1.5"
+
+data_dir: "/data/rlds_output"
+dataset_name: "aloha_lipbalm_pick_10hz"
+
+save_dir: "/data/checkpoints/lipbalm_10hz"
+
+batch_size: 32
+num_steps: 20000
+learning_rate: 1.0e-4
+action_horizon: 4
+window_size: 1
+
+freeze_transformer: true
+
+log_interval: 100
+save_interval: 2000
+wandb: false
