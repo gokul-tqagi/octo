@@ -1,0 +1,28 @@
+# finetune_aloha.yaml: Octo-Small finetune config for ALOHA pack-red-bag delta EEF data.
+# Adjusted hyperparams based on initial 5k-step run analysis.
+
+# Model
+pretrained_path: "hf://rail-berkeley/octo-small-1.5"
+
+# Data
+data_dir: "/data/rlds"
+dataset_name: "aloha_pack_red_bag"
+
+# Checkpoints
+save_dir: "/checkpoints"
+
+# Training — adjusted for small dataset (9 episodes, 962 frames)
+batch_size: 8
+num_steps: 20000
+learning_rate: 1.0e-4        # reduced from 3e-4 for smoother convergence
+action_horizon: 4
+window_size: 1
+
+# Freeze transformer, train only action head + readout
+# Less overfitting risk with 9 episodes
+freeze_transformer: true
+
+# Logging
+log_interval: 100
+save_interval: 2000
+wandb: false
