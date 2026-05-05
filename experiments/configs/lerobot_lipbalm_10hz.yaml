@@ -6,7 +6,7 @@ record_dirs:
   - /data/aloha/mobileai-lipbalm1
   - /data/aloha/mobileai-lipbalm2
 
-output_dir: /data/rlds_output
+output_dir: /data/skills.trainer_cache
 dataset_name: aloha_lipbalm_pick_10hz
 language_instruction: "pick up the lip balm"
 

@@ -9,7 +9,7 @@ can't read our nested serialization format). Keeps Octo's pretrained
 observation space (front + wrist cameras) and action space (7-dim delta EEF).
 
 Usage:
-    python scripts/finetune_xarm.py \
+    python experiments/train/finetune_xarm.py \
         --pretrained_path=hf://rail-berkeley/octo-small-1.5 \
         --data_dir=./data/xarm_place_toolbox_rlds \
         --save_dir=./checkpoints/xarm_place_toolbox

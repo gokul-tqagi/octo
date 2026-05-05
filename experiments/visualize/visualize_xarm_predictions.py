@@ -13,7 +13,7 @@ Adapted from octo/utils/visualization_lib.py to work with our custom
 TFRecords (bypasses TFDS) and saves to disk (bypasses wandb).
 
 Usage:
-    python scripts/visualize_xarm_predictions.py \
+    python experiments/visualize/visualize_xarm_predictions.py \
         --checkpoint_path=./checkpoints/xarm_place_toolbox \
         --data_dir=./data/xarm_place_toolbox_rlds \
         --output_dir=./viz_output

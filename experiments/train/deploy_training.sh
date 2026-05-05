@@ -22,7 +22,7 @@ fi
 SERVER="$1"
 DEST_DIR="$2"
 
-OCTO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+OCTO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 LOCAL_RLDS_DIR="/home/gokul/data/rlds_output"
 DOCKER_IMAGE="octo-finetune:latest"
 DOCKER_TAR="/tmp/octo-finetune.tar"
@@ -36,24 +36,13 @@ echo ""
 # --- 1. Sync RLDS TFRecords ---
 echo "[1/4] Syncing RLDS tfrecords..."
 ssh "${SERVER}" "mkdir -p ${DEST_DIR}/data/rlds_output"
-rsync -avz --progress \
-    "${LOCAL_RLDS_DIR}/" \
-    "${SERVER}:${DEST_DIR}/data/rlds_output/"
+rsync -avz --progress "${LOCAL_RLDS_DIR}/" "${SERVER}:${DEST_DIR}/data/rlds_output/"
 echo "  Done."
 
 # --- 2. Sync Octo codebase ---
 echo "[2/4] Syncing octo codebase..."
 ssh "${SERVER}" "mkdir -p ${DEST_DIR}/octo"
-rsync -avz --progress \
-    --exclude='.git' \
-    --exclude='__pycache__' \
-    --exclude='*.pyc' \
-    --exclude='checkpoints/' \
-    --exclude='/data/' \
-    --exclude='.eggs/' \
-    --exclude='*.egg-info/' \
-    "${OCTO_DIR}/" \
-    "${SERVER}:${DEST_DIR}/octo/"
+rsync -avz --progress --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='checkpoints/' --exclude='/data/' --exclude='.eggs/' --exclude='*.egg-info/' "${OCTO_DIR}/" "${SERVER}:${DEST_DIR}/octo/"
 echo "  Done."
 
 # --- 3. Export and transfer Docker image ---
@@ -67,16 +56,7 @@ echo "  Done."
 
 # --- 4. Print remote training command ---
 echo ""
-echo "[4/4] Deploy complete. Run training on ${SERVER} with:"
+echo "[4/4] Deploy complete. Launch training with:"
 echo ""
-echo "  ssh ${SERVER}"
-echo ""
-echo "  docker run --rm --gpus all --shm-size 8g \\"
-echo "    -v ${DEST_DIR}/octo:/octo \\"
-echo "    -v ${DEST_DIR}/data:/data \\"
-echo "    -v ~/.cache:/root/.cache \\"
-echo "    -e HF_HOME=/root/.cache/huggingface \\"
-echo "    ${DOCKER_IMAGE} \\"
-echo "    python3 /octo/scripts/finetune_xarm.py \\"
-echo "      --config /octo/scripts/configs/finetune_marker_pick.yaml"
+echo "  bash experiments/train/train.sh experiments/configs/finetune_marker_pick_10hz.yaml ${SERVER} ${DEST_DIR}"
 echo ""

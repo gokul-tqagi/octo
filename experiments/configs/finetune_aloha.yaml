@@ -5,7 +5,7 @@
 pretrained_path: "hf://rail-berkeley/octo-small-1.5"
 
 # Data
-data_dir: "/data/rlds"
+data_dir: "/data/skills.trainer_cache"
 dataset_name: "aloha_pack_red_bag"
 
 # Checkpoints

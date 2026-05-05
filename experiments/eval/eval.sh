@@ -1,10 +1,10 @@
 #!/bin/bash
 # eval.sh: Run eval on a remote server's checkpoints and download results locally.
-# eval.sh: Runs eval + viz on server, syncs results back.
+# eval.sh: Runs eval + viz on server, syncs results back, updates Excel spreadsheet.
 
 set -euo pipefail
 
-OCTO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+OCTO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 LOCAL_DATA_DIR="/home/gokul/data"
 DOCKER_IMAGE="octo-finetune:latest"
 
@@ -17,8 +17,8 @@ usage() {
     echo "  dest_dir         Remote base directory (e.g. /home/ubuntu/torqueagi)"
     echo ""
     echo "Examples:"
-    echo "  $0 scripts/configs/finetune_marker_pick_10hz.yaml aws-L4-server1 /home/ubuntu/torqueagi"
-    echo "  $0 scripts/configs/finetune_lipbalm_10hz.yaml local"
+    echo "  $0 experiments/configs/finetune_marker_pick_10hz.yaml aws-L4-server1 /home/ubuntu/torqueagi"
+    echo "  $0 experiments/configs/finetune_lipbalm_10hz.yaml local"
     exit 1
 }
 
@@ -49,15 +49,15 @@ echo ""
 if [ "$MODE" = "local" ]; then
     DATA_DIR="$(cd "$OCTO_DIR/../data" 2>/dev/null && pwd || echo "$LOCAL_DATA_DIR")"
 
-    echo "[1/2] Running eval locally..."
-    docker run --rm --gpus all --shm-size 8g -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface "$DOCKER_IMAGE" bash -c "pip install -e /octo -q && python3 /octo/scripts/eval_xarm.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/eval_output/$CHECKPOINT_NAME --max_episodes=7"
+    echo "[1/3] Running eval locally..."
+    docker run --rm --gpus all --shm-size 8g -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface "$DOCKER_IMAGE" bash -c "pip install -e /octo -q && python3 /octo/experiments/eval/eval_xarm.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/eval_output/$CHECKPOINT_NAME --max_episodes=7"
 
-    echo "[2/2] Running viz locally..."
-    docker run --rm --gpus all --shm-size 8g -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface "$DOCKER_IMAGE" bash -c "pip install -e /octo -q && python3 /octo/scripts/visualize_xarm_predictions.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/viz_output/$CHECKPOINT_NAME --max_episodes=3 --samples_per_state=8"
+    echo "[2/3] Running viz locally..."
+    docker run --rm --gpus all --shm-size 8g -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface "$DOCKER_IMAGE" bash -c "pip install -e /octo -q && python3 /octo/experiments/visualize/visualize_xarm_predictions.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/viz_output/$CHECKPOINT_NAME --max_episodes=3 --samples_per_state=8"
 
     # Update results spreadsheet
     echo "[3/3] Updating results spreadsheet..."
-    docker run --rm -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data "$DOCKER_IMAGE" bash -c "pip install openpyxl -q && python3 /octo/scripts/compile_results.py --data_dir /data --config_dir /octo/scripts/configs --output /data/octo_finetune_results.xlsx --run $CHECKPOINT_NAME"
+    docker run --rm -v "$OCTO_DIR":/octo -v "$DATA_DIR":/data "$DOCKER_IMAGE" bash -c "pip install openpyxl -q && python3 /octo/experiments/eval/compile_results.py --data_dir /data --config_dir /octo/experiments/configs --output /data/octo_finetune_results.xlsx --run $CHECKPOINT_NAME"
 
     echo ""
     echo "Done. Results at:"
@@ -101,15 +101,15 @@ else
     fi
 
     # 1. Run eval on server
-    echo "[1/4] Running eval on $SERVER..."
-    ssh "$SERVER" "docker run --rm --gpus all --shm-size 8g -v $DEST_DIR/octo:/octo -v $DEST_DIR/data:/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface $DOCKER_IMAGE bash -c 'pip install -e /octo -q && python3 /octo/scripts/eval_xarm.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/eval_output/$CHECKPOINT_NAME --max_episodes=7'"
+    echo "[1/5] Running eval on $SERVER..."
+    ssh "$SERVER" "docker run --rm --gpus all --shm-size 8g -v $DEST_DIR/octo:/octo -v $DEST_DIR/data:/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface $DOCKER_IMAGE bash -c 'pip install -e /octo -q && python3 /octo/experiments/eval/eval_xarm.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/eval_output/$CHECKPOINT_NAME --max_episodes=7'"
 
     # 2. Run viz on server
-    echo "[2/4] Running viz on $SERVER..."
-    ssh "$SERVER" "docker run --rm --gpus all --shm-size 8g -v $DEST_DIR/octo:/octo -v $DEST_DIR/data:/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface $DOCKER_IMAGE bash -c 'pip install -e /octo -q && python3 /octo/scripts/visualize_xarm_predictions.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/viz_output/$CHECKPOINT_NAME --max_episodes=3 --samples_per_state=8'"
+    echo "[2/5] Running viz on $SERVER..."
+    ssh "$SERVER" "docker run --rm --gpus all --shm-size 8g -v $DEST_DIR/octo:/octo -v $DEST_DIR/data:/data -v ~/.cache:/root/.cache -e HF_HOME=/root/.cache/huggingface $DOCKER_IMAGE bash -c 'pip install -e /octo -q && python3 /octo/experiments/visualize/visualize_xarm_predictions.py --checkpoint_path=/data/checkpoints/$CHECKPOINT_NAME --data_dir=/data/rlds_output --dataset_name=$DATASET_NAME --output_dir=/data/viz_output/$CHECKPOINT_NAME --max_episodes=3 --samples_per_state=8'"
 
     # 3. Download results
-    echo "[3/4] Downloading results..."
+    echo "[3/5] Downloading results..."
     mkdir -p "$LOCAL_DATA_DIR/eval_output/$CHECKPOINT_NAME" "$LOCAL_DATA_DIR/viz_output/$CHECKPOINT_NAME" 2>/dev/null || docker run --rm -v "$LOCAL_DATA_DIR":/data "$DOCKER_IMAGE" bash -c "mkdir -p /data/eval_output/$CHECKPOINT_NAME /data/viz_output/$CHECKPOINT_NAME && chown -R 1000:1000 /data/eval_output/$CHECKPOINT_NAME /data/viz_output/$CHECKPOINT_NAME"
     rsync -avz "$SERVER:$DEST_DIR/data/eval_output/$CHECKPOINT_NAME/" "$LOCAL_DATA_DIR/eval_output/$CHECKPOINT_NAME/"
     rsync -avz "$SERVER:$DEST_DIR/data/viz_output/$CHECKPOINT_NAME/" "$LOCAL_DATA_DIR/viz_output/$CHECKPOINT_NAME/"
@@ -121,7 +121,7 @@ else
 
     # 4. Print results
     echo ""
-    echo "[4/4] Results downloaded."
+    echo "[4/5] Results downloaded."
     echo ""
     METRICS="$LOCAL_DATA_DIR/eval_output/$CHECKPOINT_NAME/eval_metrics.json"
     if [ -f "$METRICS" ]; then
@@ -141,7 +141,7 @@ for k in keys:
 
     # 5. Update results spreadsheet
     echo "[5/5] Updating results spreadsheet..."
-    docker run --rm -v "$OCTO_DIR":/octo -v "$LOCAL_DATA_DIR":/data "$DOCKER_IMAGE" bash -c "pip install openpyxl -q && python3 /octo/scripts/compile_results.py --data_dir /data --config_dir /octo/scripts/configs --output /data/octo_finetune_results.xlsx --run $CHECKPOINT_NAME"
+    docker run --rm -v "$OCTO_DIR":/octo -v "$LOCAL_DATA_DIR":/data "$DOCKER_IMAGE" bash -c "pip install openpyxl -q && python3 /octo/experiments/eval/compile_results.py --data_dir /data --config_dir /octo/experiments/configs --output /data/octo_finetune_results.xlsx --run $CHECKPOINT_NAME"
 
     echo ""
     echo "Results at:"

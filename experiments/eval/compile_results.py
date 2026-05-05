@@ -9,10 +9,10 @@ and builds a comparison table with key metrics + design choices.
 
 Usage:
     # Rebuild full spreadsheet from all results
-    python3 scripts/compile_results.py --data_dir /home/gokul/data --config_dir scripts/configs --output results.xlsx
+    python3 experiments/eval/compile_results.py --data_dir /home/gokul/data --config_dir experiments/configs --output results.xlsx
 
     # Add a single new run (appends if sheet exists)
-    python3 scripts/compile_results.py --data_dir /home/gokul/data --config_dir scripts/configs --output results.xlsx --run lipbalm_10hz
+    python3 experiments/eval/compile_results.py --data_dir /home/gokul/data --config_dir experiments/configs --output results.xlsx --run lipbalm_10hz
 """
 
 import argparse

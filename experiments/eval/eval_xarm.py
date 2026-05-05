@@ -9,7 +9,7 @@ prediction at each timestep, and compares predicted trajectory to
 ground truth. Produces a plotly HTML report and prints error metrics.
 
 Usage:
-    python scripts/eval_xarm.py \
+    python experiments/eval/eval_xarm.py \
         --checkpoint_path=./checkpoints/xarm_place_toolbox \
         --data_dir=./data/xarm_place_toolbox_rlds \
         --output_dir=./eval_output

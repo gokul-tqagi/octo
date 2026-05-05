@@ -17,8 +17,8 @@ Usage (inside Docker — project code and data mounted at runtime):
       -v /path/to/octo:/octo \
       -v /path/to/lerobot/data:/data/aloha \
       -v /path/to/output:/data \
-      octo-finetune:latest python3 /octo/scripts/visualize_rlds_data.py \
-        --config /octo/scripts/configs/lerobot_marker_pick.yaml \
+      octo-finetune:latest python3 /octo/experiments/visualize/visualize_rlds_data.py \
+        --config /octo/experiments/configs/lerobot_marker_pick.yaml \
         --output_dir /data/viz_output/data_quality_marker_pick \
         --max_episodes 5
 
@@ -27,21 +27,21 @@ Usage (inside Docker — project code and data mounted at runtime):
       -v /path/to/octo:/octo \
       -v /path/to/lerobot/data:/data/aloha \
       -v /path/to/output:/data \
-      octo-finetune:latest python3 /octo/scripts/visualize_rlds_data.py \
-        --config /octo/scripts/configs/lerobot_marker_pick_10hz.yaml \
+      octo-finetune:latest python3 /octo/experiments/visualize/visualize_rlds_data.py \
+        --config /octo/experiments/configs/lerobot_marker_pick_10hz.yaml \
         --output_dir /data/viz_output/data_quality_marker_pick_10hz \
         --max_episodes 5
 
     # 3. End-to-end pipeline: convert -> visualize -> train -> eval
     #    Step 1: Convert LeRobot to RLDS
-    docker run --rm -v ...  python3 /octo/scripts/lerobot_to_rlds.py --config /octo/scripts/configs/lerobot_marker_pick.yaml
+    docker run --rm -v ...  python3 /octo/experiments/data/lerobot_to_rlds.py --config /octo/experiments/configs/lerobot_marker_pick.yaml
     #    Step 2: Visualize data quality (this script)
-    docker run --rm -v ...  python3 /octo/scripts/visualize_rlds_data.py --config /octo/scripts/configs/lerobot_marker_pick.yaml --output_dir /data/viz_output/data_quality
+    docker run --rm -v ...  python3 /octo/experiments/visualize/visualize_rlds_data.py --config /octo/experiments/configs/lerobot_marker_pick.yaml --output_dir /data/viz_output/data_quality
     #    Step 3: Train (on remote GPU server)
-    bash scripts/deploy_training.sh aws-L4-server1 /home/ubuntu/torqueagi
-    ssh aws-L4-server1 "cd /home/ubuntu/torqueagi/octo && bash scripts/train.sh scripts/configs/finetune_marker_pick.yaml"
+    bash experiments/train/deploy_training.sh aws-L4-server1 /home/ubuntu/torqueagi
+    ssh aws-L4-server1 "cd /home/ubuntu/torqueagi/octo && bash experiments/train/train.sh experiments/configs/finetune_marker_pick.yaml"
     #    Step 4: Eval
-    docker run --rm --gpus all -v ... python3 /octo/scripts/eval_xarm.py --checkpoint_path=/data/checkpoints/... --data_dir=/data/rlds_output --dataset_name=aloha_marker_pick
+    docker run --rm --gpus all -v ... python3 /octo/experiments/eval/eval_xarm.py --checkpoint_path=/data/checkpoints/... --data_dir=/data/rlds_output --dataset_name=aloha_marker_pick
 """
 
 import argparse
@@ -69,7 +69,7 @@ except ImportError:
 
 # Reuse FK from the conversion pipeline
 import sys
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data"))
 from wxai_fk import batch_fk_euler, compute_delta_eef
 
 
