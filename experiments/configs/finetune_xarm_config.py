@@ -13,7 +13,7 @@ def get_config(config_string="full,language_conditioned"):
     assert mode in ["full", "head_only", "head_mlp_only"]
 
     # xarm place-object-in-toolbox dataset
-    # Extracted from mcap bags via scripts/mcap_to_rlds.py
+    # Extracted from mcap bags via experiments/data/mcap_to_rlds.py
     FINETUNING_KWARGS = {
         "name": "xarm_place_toolbox",
         "data_dir": placeholder(str),  # path to RLDS output dir

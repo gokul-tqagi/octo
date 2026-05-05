@@ -4,7 +4,7 @@ record_dirs:
   - /data/aloha/mobileai-avatar_test_record2
   - /data/aloha/mobileai-avatar_test_record4_recovered
 
-output_dir: /data/rlds_output
+output_dir: /data/skills.trainer_cache
 dataset_name: aloha_pack_red_bag
 language_instruction: "pack red bag"
 

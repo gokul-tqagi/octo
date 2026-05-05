@@ -1,0 +1,33 @@
+# lerobot_lipbalm_10hz.yaml: Convert ALOHA lipbalm pick data to RLDS at 10Hz.
+# 60 episodes across 3 recordings, right arm only.
+
+record_dirs:
+  - /data/aloha/mobileai-lipbalm
+  - /data/aloha/mobileai-lipbalm1
+  - /data/aloha/mobileai-lipbalm2
+
+output_dir: /data/skills.trainer_cache
+dataset_name: aloha_lipbalm_pick_10hz
+language_instruction: "pick up the lip balm"
+
+active_arm: right
+left_arm_indices: [0, 1, 2, 3, 4, 5, 6]
+right_arm_indices: [7, 8, 9, 10, 11, 12, 13]
+base_vel_indices: []
+include_base_vel: false
+
+action_mode: delta_eef
+fk_joint_indices: [0, 1, 2, 3, 4, 5]
+gripper_index: 6
+fk_include_mount: false
+
+primary_camera: cam_high
+wrist_camera: cam_right_wrist
+primary_size: [256, 256]
+wrist_size: [128, 128]
+
+# 30 FPS -> 10 Hz (stride=3)
+target_hz: 10.0
+original_fps: 30
+
+val_ratio: 0.1

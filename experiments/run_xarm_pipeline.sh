@@ -61,7 +61,7 @@ extract() {
         -v "${OCTO_DIR}:/octo" \
         -e PYTHONUNBUFFERED=1 \
         "${IMAGE_NAME}" \
-        python3 /octo/scripts/mcap_to_rlds.py \
+        python3 /octo/experiments/data/mcap_to_rlds.py \
             --bag_dir /data/bags \
             --output_dir /data/rlds_output \
             --dataset_name "${DATASET_NAME}" \
@@ -91,7 +91,7 @@ finetune() {
         -e PYTHONUNBUFFERED=1 \
         "${IMAGE_NAME}" \
         python3 /octo/scripts/finetune.py \
-            --config=/octo/scripts/configs/finetune_xarm_config.py:"${FINETUNE_MODE}" \
+            --config=/octo/experiments/configs/finetune_xarm_config.py:"${FINETUNE_MODE}" \
             --config.pretrained_path="${PRETRAINED_MODEL}" \
             --config.dataset_kwargs.data_dir=/data/rlds \
             --config.save_dir=/checkpoints
@@ -114,7 +114,7 @@ validate() {
         -v "${OCTO_DIR}:/octo" \
         -e PYTHONUNBUFFERED=1 \
         "${IMAGE_NAME}" \
-        python3 /octo/scripts/validate_rlds.py \
+        python3 /octo/experiments/data/validate_rlds.py \
             --data_dir /data/rlds \
             --dataset_name "${DATASET_NAME}" \
             --output_dir /data/validation_output \

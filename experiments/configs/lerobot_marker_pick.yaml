@@ -1,0 +1,38 @@
+# lerobot_marker_pick.yaml: Config for converting ALOHA marker_pick data to RLDS.
+# 74 episodes across 4 recording sessions, right arm only.
+
+record_dirs:
+  - /data/aloha/marker_pick
+  - /data/aloha/marker_pick1
+  - /data/aloha/marker_pick2
+  - /data/aloha/marker_pick3
+
+output_dir: /data/skills.trainer_cache
+dataset_name: aloha_marker_pick
+language_instruction: "pick up the marker"
+
+# Right arm only (left arm is stationary in these recordings).
+# Right arm indices: joints 7-13 in the 14-dim action vector.
+active_arm: right
+left_arm_indices: [0, 1, 2, 3, 4, 5, 6]
+right_arm_indices: [7, 8, 9, 10, 11, 12, 13]
+base_vel_indices: []
+include_base_vel: false
+
+# FK conversion: joint positions -> delta EEF actions (7-dim, matches Octo pretrained format)
+action_mode: delta_eef
+fk_joint_indices: [0, 1, 2, 3, 4, 5]
+gripper_index: 6
+fk_include_mount: false
+
+# Cameras: overhead + right wrist
+primary_camera: cam_high
+wrist_camera: cam_right_wrist
+primary_size: [256, 256]
+wrist_size: [128, 128]
+
+# 30 FPS -> 5 Hz (stride=6)
+target_hz: 5.0
+original_fps: 30
+
+val_ratio: 0.1

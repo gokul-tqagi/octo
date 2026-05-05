@@ -9,7 +9,7 @@ can't read our nested serialization format). Keeps Octo's pretrained
 observation space (front + wrist cameras) and action space (7-dim delta EEF).
 
 Usage:
-    python scripts/finetune_xarm.py \
+    python experiments/train/finetune_xarm.py \
         --pretrained_path=hf://rail-berkeley/octo-small-1.5 \
         --data_dir=./data/xarm_place_toolbox_rlds \
         --save_dir=./checkpoints/xarm_place_toolbox
@@ -18,6 +18,8 @@ Usage:
 import glob
 import json
 import os
+import uuid
+from datetime import datetime
 
 from absl import app, flags, logging
 import cv2
@@ -304,11 +306,34 @@ def main(_):
         f"({total_frames} total frames)"
     )
 
+    # Generate unique training run ID
+    run_id = f"{FLAGS.dataset_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+
     # Save stats for inference later
     if FLAGS.save_dir:
         os.makedirs(FLAGS.save_dir, exist_ok=True)
         with open(os.path.join(FLAGS.save_dir, "dataset_statistics.json"), "w") as f:
             json.dump(stats, f, indent=2)
+
+    # Set up training log file alongside checkpoints
+    log_file = None
+    if FLAGS.save_dir:
+        log_path = os.path.join(FLAGS.save_dir, f"train_{run_id}.log")
+        log_file = open(log_path, "w")
+        log_file.write(f"run_id: {run_id}\n")
+        log_file.write(f"pretrained_path: {FLAGS.pretrained_path}\n")
+        log_file.write(f"dataset: {FLAGS.dataset_name}\n")
+        log_file.write(f"batch_size: {FLAGS.batch_size}\n")
+        log_file.write(f"num_steps: {FLAGS.num_steps}\n")
+        log_file.write(f"learning_rate: {FLAGS.learning_rate}\n")
+        log_file.write(f"freeze_transformer: {FLAGS.freeze_transformer}\n")
+        log_file.write(f"train_episodes: {len(train_episodes)}\n")
+        log_file.write(f"val_episodes: {len(val_episodes)}\n")
+        log_file.write(f"total_frames: {total_frames}\n")
+        log_file.write(f"---\n")
+        log_file.write(f"step,loss\n")
+        log_file.flush()
+        logging.info(f"Training log: {log_path}")
 
     # Create data iterators
     train_iter = make_batch_generator(
@@ -410,6 +435,10 @@ def main(_):
             loss = float(info["loss"])
             tqdm.tqdm.write(f"  Step {step+1}/{FLAGS.num_steps} | loss: {loss:.4f}")
 
+            if log_file:
+                log_file.write(f"{step+1},{loss:.6f}\n")
+                log_file.flush()
+
             if FLAGS.wandb:
                 wb.log(
                     flax.traverse_util.flatten_dict({"training": info}, sep="/"),
@@ -429,6 +458,9 @@ def main(_):
             step=FLAGS.num_steps - 1, checkpoint_path=FLAGS.save_dir,
         )
         logging.info(f"Training complete. Final checkpoint saved to {FLAGS.save_dir}")
+
+    if log_file:
+        log_file.close()
 
 
 if __name__ == "__main__":

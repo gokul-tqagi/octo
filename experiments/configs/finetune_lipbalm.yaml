@@ -1,0 +1,27 @@
+# finetune_lipbalm.yaml: Octo-Small head_only finetune for ALOHA lipbalm pick task.
+# 60 episodes (~8.8k frames raw, ~1.5k at 5Hz) — head_only appropriate.
+
+# Model
+pretrained_path: "hf://rail-berkeley/octo-small-1.5"
+
+# Data (output of lerobot_lipbalm.yaml conversion)
+data_dir: "/data/skills.trainer_cache"
+dataset_name: "aloha_lipbalm_pick"
+
+# Checkpoints
+save_dir: "/data/checkpoints/lipbalm_head_only"
+
+# Training
+batch_size: 32
+num_steps: 20000
+learning_rate: 1.0e-4
+action_horizon: 4
+window_size: 1
+
+# Head-only: freeze transformer backbone
+freeze_transformer: true
+
+# Logging
+log_interval: 100
+save_interval: 2000
+wandb: false

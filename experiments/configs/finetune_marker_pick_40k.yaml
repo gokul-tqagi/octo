@@ -1,0 +1,27 @@
+# finetune_marker_pick_40k.yaml: Continue head_only training from 20k checkpoint to 40k steps.
+# Resumes from the 20k checkpoint with fresh optimizer state and cosine lr schedule.
+
+# Model — resume from our 20k checkpoint, not the HF pretrained
+pretrained_path: "/data/checkpoints/marker_pick_head_only"
+
+# Data
+data_dir: "/data/skills.trainer_cache"
+dataset_name: "aloha_marker_pick"
+
+# Checkpoints
+save_dir: "/data/checkpoints/marker_pick_head_only_40k"
+
+# Training — 20k more steps from the 20k checkpoint
+batch_size: 32
+num_steps: 20000
+learning_rate: 5.0e-5
+action_horizon: 4
+window_size: 1
+
+# Head-only: same as first run
+freeze_transformer: true
+
+# Logging
+log_interval: 100
+save_interval: 2000
+wandb: false
